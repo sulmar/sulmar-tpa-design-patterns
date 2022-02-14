@@ -11,7 +11,20 @@ namespace StrategyPattern
         {
             Console.WriteLine("Hello Strategy Pattern!");
 
-            HappyHoursOrderCalculatorTest();
+         //   HappyHoursOrderCalculatorTest();
+
+            B2BSalaryCalculatorTest();
+        }
+
+        private static void B2BSalaryCalculatorTest()
+        {
+            B2BSalaryCalculator salaryCalculator = new B2BSalaryCalculator();
+
+            B2BSalary salary = new B2BSalary { GrossMonthlySalary = 2000, TaxationMethod = TaxationMethod.Linear };
+
+            var result = salaryCalculator.SalaryResult(salary, true);
+
+            Console.WriteLine(result);
         }
 
         private static void HappyHoursOrderCalculatorTest()
