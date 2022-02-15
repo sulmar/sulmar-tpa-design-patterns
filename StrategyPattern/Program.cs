@@ -63,7 +63,13 @@ namespace StrategyPattern
 
             OrderCalculator orderCalculator = new OrderCalculator();
             decimal discount = orderCalculator.CalculateDiscount(order);
-            
+
+            order.DiscountStrategy = new FixedCalculateDiscountStrategy(10);
+
+            decimal discount2 = orderCalculator.CalculateDiscount(order);
+
+            Console.WriteLine(discount - discount2);
+
             string canDiscountParameters = JsonConvert.SerializeObject(order.CanDiscountStrategy, Formatting.Indented);
             string discountParameters = JsonConvert.SerializeObject(order.DiscountStrategy, Formatting.Indented);
 
