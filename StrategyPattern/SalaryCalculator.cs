@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace StrategyPattern
@@ -7,10 +9,6 @@ namespace StrategyPattern
     public class ContractSalary
     {
         public decimal GrossMonthlySalary { get; set; }
-        public PPKType PPKType { get; set; }
-
-        public decimal EmployeeRate { get; set; }
-        public decimal EmployerRate { get; set; }
     }
 
     public class B2BSalary
@@ -71,7 +69,8 @@ namespace StrategyPattern
     public enum TaxationMethod
     {
         Scale,
-        Linear
+        Linear,
+        Flat
     }
 
    
@@ -121,28 +120,136 @@ namespace StrategyPattern
         }
     }
 
+    // Abstract strategy
+    public interface IPPKStrategy
+    {
+        decimal Calculate(decimal salary);
+    }
+
+
+    public interface ITaxationStrategy
+    {
+        decimal CalculateTax(decimal salary);
+    }
+
+    public class LinearTaxationStrategy : ITaxationStrategy
+    {
+        private readonly decimal rate = 0.19m;
+
+        public decimal CalculateTax(decimal salary)
+        {
+            return salary * rate;
+        }
+    }
+
+    public class ScaleTaxationStrategy : ITaxationStrategy
+    {
+        private readonly IDictionary<decimal, decimal> thresholds = new Dictionary<decimal, decimal>
+        {
+            { 1000, 0.19m },
+            { 2000, 0.29m },
+            { 3000, 0.39m },
+        };
+       
+        public decimal CalculateTax(decimal salary)
+        {
+            if (thresholds.TryGetValue(salary, out decimal rate))
+            {
+                return salary * rate;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+    }
+
+    public class FlatTaxationStrategy : ITaxationStrategy
+    {
+        public decimal CalculateTax(decimal salary)
+        {
+            return 100;
+        }
+    }
+
+    public class LackPPKStrategy : IPPKStrategy
+    {
+        public decimal Calculate(decimal salary)
+        {
+            return 0;
+        }
+    }
+
+    public class StandardPPKStrategy : IPPKStrategy
+    {
+        public decimal Calculate(decimal salary)
+        {
+            return salary;
+        }
+    }
+
+    public class IndividualPPKStrategy : IPPKStrategy
+    {
+        public IndividualPPKStrategy(decimal employeeRate, decimal employerRate)
+        {
+            EmployeeRate = employeeRate;
+            EmployerRate = employerRate;
+        }
+
+        public decimal EmployeeRate { get; }
+        public decimal EmployerRate { get; }
+
+        public decimal Calculate(decimal salary)
+        {
+            return salary * EmployeeRate * EmployerRate;
+        }
+    }
+
     public class ContractSalaryCalculator
     {
+        private readonly IPPKStrategy pPKStrategy;
+        private readonly ITaxationStrategy taxationStrategy;
+
+        public ContractSalaryCalculator(IPPKStrategy pPKStrategy, ITaxationStrategy taxationStrategy)
+        {
+            this.pPKStrategy = pPKStrategy;
+            this.taxationStrategy = taxationStrategy;
+        }
+
         public decimal SalaryResult(ContractSalary salary)
         {
             decimal result = salary.GrossMonthlySalary;
 
-            if (salary.PPKType == PPKType.Lack)
-            {
-                
-            }
-            else
-            if (salary.PPKType == PPKType.Standard)
-            {
+            // 1. .. ....
 
-            }
-            else
-            if (salary.PPKType == PPKType.Individual)
-            {
-                result = result * salary.EmployeeRate * salary.EmployerRate;
-            }
+            // 2. .. ....
+
+            // 3. .. 
+            result = pPKStrategy.Calculate(salary.GrossMonthlySalary);
+
+            // 4. ... ...
+
+            // 5. .. ...
+
+            result = taxationStrategy.CalculateTax(salary.GrossMonthlySalary);
+
 
             return result;
+        }
+    }
+
+    public class PPKStrategyFactory
+    {
+        public static IPPKStrategy Create(PPKType pPKType)
+        {
+            switch(pPKType)
+            {
+                case PPKType.Lack: return new LackPPKStrategy();
+                case PPKType.Standard: return new StandardPPKStrategy();
+                case PPKType.Individual: return new IndividualPPKStrategy(0.1m, 0.2m);
+
+                default: throw new NotSupportedException();
+            }
         }
     }
 

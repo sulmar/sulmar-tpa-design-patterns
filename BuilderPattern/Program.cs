@@ -14,6 +14,10 @@ namespace BuilderPattern
         {
             Console.WriteLine("Hello Builder Pattern!");
 
+            StringBuilderTest();
+
+            FluentReportBuilderTest();
+
             ITenantRepository tenantRepository = new FakeTenantRepository();
             IPdfGeneratorService generatorService = new PdfGeneratorService();
 
@@ -39,6 +43,42 @@ namespace BuilderPattern
             Report financialReport = finacialReportDirector.GetReport();
 
         }
+
+        private static void StringBuilderTest()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+
+            stringBuilder
+                    .AppendLine("Witaj")
+                    .AppendLine("John")
+                    .Append("Smith");
+
+            string message = stringBuilder.ToString();
+
+            Console.WriteLine(message);
+        }
+
+        private static void FluentReportBuilderTest()
+        {
+            var stream = System.Reflection.Assembly.GetEntryAssembly()
+                 .GetManifestResourceStream("CoreCitRateDetector.Resources.Logo.png");
+
+            IFluentPdfBuilder fluentPdfBuilder = FluentPdfSharpBuilder.Create()   
+                .AddHeader()
+                .AddImage(stream, 100, 10)
+                .AddImage(stream, 50, 10)
+                .AddField("Field1", "Hello", 100, 100)
+                .AddFooter();
+
+            if (true)
+            {
+                fluentPdfBuilder
+                    .AddField("Field2", "World", 50, 50);
+            }
+
+
+            var fluentReport = fluentPdfBuilder.Build();
+        }
     }
 
     public class FinacialReportDirector
@@ -54,6 +94,7 @@ namespace BuilderPattern
         {
             builder.AddTenantSection(tenant);
             builder.AddFinancialSection(totalAmount);
+           
         }
 
         public Report GetReport()
@@ -237,6 +278,8 @@ namespace BuilderPattern
         Report Build();
     }
 
+    // Fluent Api  
+    // builder.Add().Add().Build();
 
     public interface IPdfBuilder
     {
@@ -247,6 +290,78 @@ namespace BuilderPattern
         void AddTable<T>(IEnumerable<T> items);
 
         byte[] Build();
+    }
+
+    public interface IFluentPdfBuilder
+    {
+        IFluentPdfBuilder AddImage(Stream image, int x, int y);
+        IFluentPdfBuilder AddField(string caption, object value, int x, int y, int width = 100, int hight = 100);
+        IFluentPdfBuilder AddHeader();
+        IFluentPdfBuilder AddFooter();
+        byte[] Build();
+    }
+
+    public class FluentPdfSharpBuilder : IFluentPdfBuilder
+    {
+        private readonly PdfDocument document;
+        private readonly XGraphics gfx;
+
+        private int currentY;
+
+        protected FluentPdfSharpBuilder()
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            document = new PdfDocument();
+            PdfPage page = document.AddPage();
+
+            gfx = XGraphics.FromPdfPage(page);
+        }
+
+        public static IFluentPdfBuilder Create()
+        {
+            return new FluentPdfSharpBuilder();
+        }
+
+        public IFluentPdfBuilder AddField(string caption, object value, int x, int y, int width = 100, int hight = 100)
+        {
+            XFont font = new XFont("Arial", 14, XFontStyle.Bold);
+            XTextFormatter tf = new XTextFormatter(gfx);
+            tf.Alignment = XParagraphAlignment.Center;
+            XRect rect = new XRect(x, currentY, width, hight);
+
+            tf.DrawString(caption, font, XBrushes.Black, rect, XStringFormats.TopLeft);
+            tf.DrawString(value.ToString(), font, XBrushes.Black, rect, XStringFormats.TopLeft);
+
+            return this;
+        }
+
+        public IFluentPdfBuilder AddFooter()
+        {
+            return this;
+        }
+
+        public IFluentPdfBuilder AddHeader()
+        {
+            return this;
+        }
+
+        public IFluentPdfBuilder AddImage(Stream image, int x, int y)
+        {
+            gfx.DrawImage(XImage.FromStream(image), new XPoint(x, y));
+
+            return this;
+        }
+
+        public byte[] Build()
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                document.Save(stream);
+
+                return stream.ToArray();
+            }
+        }
     }
 
     public class PdfSharpBuilder : IPdfBuilder
